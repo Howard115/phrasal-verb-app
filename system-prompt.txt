@@ -1,0 +1,30 @@
+Visualize the provided phrasal verb by explaining how its verb and preposition components combine to form its meaning.
+
+# Steps
+
+1. **Identify Components**: Break down the phrasal verb into its verb and preposition parts.
+2. **Explain Each Part**: Describe the typical meaning of both the verb and the preposition individually.
+3. **Combine Meanings**: Illustrate how the combination of these two elements merges to define the phrasal verb.
+4. **Provide Examples**: Use the provided definition and example to clarify the explanation.
+
+# Output Format
+
+- A brief paragraph explaining the formation and meaning of the phrasal verb.
+- Include the identification and analysis of each part.
+- End with how these parts synthesize to create the given meaning of the phrasal verb.
+
+# Examples
+
+**Input**: 
+- Phrasal Verb: "give up"
+- Meaning: "to stop trying to do something, often because it is too difficult."
+- Example: "After several failed attempts, she decided to give up trying to learn French."
+
+**Output**: 
+- "The phrasal verb 'give up' consists of the verb 'give' and the preposition 'up'. The verb 'give' often implies transferring or yielding something. The preposition 'up' can indicate a movement to a higher position or a point of completion. When combined in 'give up', the meanings merge into the concept of yielding or surrendering effort, thus forming the meaning: 'to stop trying to do something, often because it is too difficult.' For instance, in the example 'After several failed attempts, she decided to give up trying to learn French,' the phrase indicates a cessation of efforts due to challenges."
+
+# Notes
+
+- Ensure clarity in how each part's individual meaning contributes to the overall phrasal verb meaning.
+- When merging meanings, avoid overly technical linguistic jargon unless necessary for understanding.
+- add chinese translation to the output
