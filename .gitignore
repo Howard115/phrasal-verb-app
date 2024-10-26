@@ -2,3 +2,4 @@
 .env
 .cursorrules
 venv/
+__pycache__/
