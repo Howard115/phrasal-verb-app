@@ -1,12 +1,29 @@
-from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, field_validator  # Changed from validator to field_validator
 from typing import List
 import random
 import csv
 from openai import OpenAI
 
-app = FastAPI()
+# 2. Pydantic models for request/response
+class PhrasalVerbRequest(BaseModel):
+    phrasal_verbs: List[str]
 
+class NounResponse(BaseModel):
+    nouns: List[str]
+
+class APIKeyRequest(BaseModel):
+    api_key: str
+    
+    @field_validator('api_key')
+    def validate_api_key(cls, v):
+        if not v.startswith('sk-'):
+            raise ValueError('API key must start with "sk-"')
+        if len(v) < 40:  # OpenAI API keys are typically longer than 40 characters
+            raise ValueError('Invalid API key length')
+        return v
+
+# 3. Service classes
 class PhrasalVerbService:
     def __init__(self, csv_file='phrasal-verb.csv'):
         self.csv_file = csv_file
@@ -16,12 +33,10 @@ class PhrasalVerbService:
             csv_reader = csv.reader(file)
             phrasal_verbs = list(csv_reader)
         
-        # Remove header if present
         if not phrasal_verbs[0][0].isdigit():
             phrasal_verbs = phrasal_verbs[1:]
         
         chosen_verb = random.choice(phrasal_verbs)
-        
         return {
             "phrasal_verb": chosen_verb[0],
             "meaning": chosen_verb[1],
@@ -56,23 +71,19 @@ class OpenAIService:
         
         return [noun.strip() for noun in response.choices[0].message.content.split(',')]
 
+# 4. Initialize FastAPI and services
+app = FastAPI()
 openai_service = OpenAIService()
 phrasal_verb_service = PhrasalVerbService()
 
+# 5. API endpoints
 @app.get("/")
 async def root():
     return {"message": "Welcome to my lemonade stand!"}
 
-
 @app.get("/random-phrasal-verb")
 async def random_phrasal_verb():
     return phrasal_verb_service.get_random_phrasal_verb()
-
-class PhrasalVerbRequest(BaseModel):
-    phrasal_verbs: List[str]
-
-class NounResponse(BaseModel):
-    nouns: List[str]
 
 @app.post("/getNounForMakeSentence", response_model=NounResponse)
 async def get_noun_for_make_sentence(request: PhrasalVerbRequest):
@@ -82,10 +93,10 @@ async def get_noun_for_make_sentence(request: PhrasalVerbRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
 
-class APIKeyRequest(BaseModel):
-    api_key: str
-
 @app.post("/set-api-key")
 async def set_api_key(request: APIKeyRequest):
-    openai_service.set_api_key(request.api_key)
-    return {"message": "API key set successfully"}
+    try:
+        openai_service.set_api_key(request.api_key)
+        return {"message": "API key set successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
