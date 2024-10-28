@@ -1,95 +1,97 @@
 import streamlit as st
 import requests
-import pandas as pd
+from dataclasses import dataclass
+from typing import List, Dict
+
+@dataclass
+class PhrasalVerb:
+    phrasal_verb: str
+    meaning: str
+    example: str
 
 class PhrasalVerbApp:
-    BACKEND_URL = "http://localhost:8000"
-    INITIAL_TABLE_DATA = [
-        ["", "phrasal verb", "meaning", "example"],
-        ["Row 1", "", "", ""],
-        ["Row 2", "", "", ""],
-        ["Row 3", "", "", ""]
-    ]
-
     def __init__(self):
-        self.init_session_state()
-
-    def init_session_state(self):
-        if 'table_data' not in st.session_state:
-            st.session_state.table_data = self.INITIAL_TABLE_DATA 
-        if 'api_key' not in st.session_state:
-            st.session_state.api_key = ""
-
-    def update_table(self, row_index, new_data):
-        st.session_state.table_data[row_index] = [f"Row {row_index}"] + new_data
-
-    def fetch_random_phrasal_verb(self):
-        return self._make_request("get", f"{self.BACKEND_URL}/random-phrasal-verb")
-
-    def fetch_nouns_for_sentence(self):
-        phrasal_verbs = [row[1] for row in st.session_state.table_data[1:] if row[1]]
-        return self._make_request("post", f"{self.BACKEND_URL}/getNounForMakeSentence", json={"phrasal_verbs": phrasal_verbs})
-
-    def set_api_key(self, api_key):
-        response = self._make_request("post", f"{self.BACKEND_URL}/set-api-key", json={"api_key": api_key})
-        if response:
-            st.success("API key set successfully")
-            st.session_state.api_key = api_key
-
-    def _make_request(self, method, url, **kwargs):
-        try:
-            response = requests.request(method, url, **kwargs)
-            if response.status_code == 200:
-                return response.json()
-            else:
-                st.error(f"Error: Unable to fetch data. Status code: {response.status_code}")
-        except requests.RequestException as e:
-            st.error(f"Error: {str(e)}")
+        self.base_url = "http://localhost:8000"
+        self.phrasal_verbs: List[PhrasalVerb] = [None, None, None]
+        
+    def fetch_random_phrasal_verb(self) -> PhrasalVerb:
+        response = requests.get(f"{self.base_url}/api/v1/phrasal-verbs/random")
+        if response.status_code == 200:
+            data = response.json()
+            return PhrasalVerb(**data)
         return None
 
-    def create_dataframe(self):
-        df = pd.DataFrame(st.session_state.table_data[1:], columns=st.session_state.table_data[0])
-        df.set_index(df.columns[0], inplace=True)
-        return df
+    def get_noun_suggestions(self) -> List[str]:
+        if None in self.phrasal_verbs:
+            return []
+        
+        payload = {
+            "phrasal_verbs": [pv.phrasal_verb for pv in self.phrasal_verbs if pv]
+        }
+        response = requests.post(f"{self.base_url}/api/v1/nouns/suggestions", json=payload)
+        if response.status_code == 200:
+            return response.json()["nouns"]
+        return []
 
-    def render_gen_buttons(self):
-        for i in range(1, 4):
-            if st.button(f"Gen {i}", key=f"gen_button_{i}"):
-                data = self.fetch_random_phrasal_verb()
-                if data:
-                    self.update_table(i, [data['phrasal_verb'], data['meaning'], data['example']])
+    def set_api_key(self, api_key: str) -> bool:
+        response = requests.post(
+            f"{self.base_url}/api/v1/configuration/api-key",
+            json={"api_key": api_key}
+        )
+        return response.status_code == 200
 
-    def render_api_key_input(self):
-        api_key = st.text_input("Enter your OpenAI API key:", value=st.session_state.api_key, type="password")
-        if st.button("Set API Key"):
-            self.set_api_key(api_key)
+    def render(self):
+        st.title("Phrasal Verb Learning Assistant")
+        st.write("Get three random phrasal verbs and receive noun suggestions!")
 
-    def render_phrasal_verb_section(self):
-        st.header("1. Generate Phrasal Verbs")
-        col1, col2 = st.columns([1, 12])
-        with col1:
-            self.render_gen_buttons()
-        with col2:
-            st.table(self.create_dataframe())
+        # Initialize session states
+        if 'phrasal_verbs' not in st.session_state:
+            st.session_state.phrasal_verbs = [None, None, None]
+        if 'api_key_set' not in st.session_state:
+            st.session_state.api_key_set = False
 
-    def render_noun_generation_section(self):
-        st.header("2. Generate Nouns for Sentence Making")
-        if st.button("Generate Nouns"):
-            nouns = self.fetch_nouns_for_sentence()
-            if nouns:
-                st.success("Nouns generated successfully!")
-                st.write("Use these nouns to make sentences with the phrasal verbs above:")
-                st.write(", ".join(nouns["nouns"]))
-            else:
-                st.warning("Please generate at least one phrasal verb before generating nouns.")
+        # API Key Section (only show if not set)
+        if not st.session_state.api_key_set:
+            st.subheader("OpenAI API Key Configuration")
+            api_key = st.text_input("Enter your OpenAI API Key", type="password")
+            if st.button("Set API Key"):
+                if self.set_api_key(api_key):
+                    st.session_state.api_key_set = True
+                    st.success("API key set successfully!")
+                    st.rerun()
+                else:
+                    st.error("Failed to set API key. Please try again.")
 
-    def run(self):
-        st.title("Phrasal Verb Learning App")
-        self.render_api_key_input()
-        self.render_phrasal_verb_section()
-        st.divider()
-        self.render_noun_generation_section()
+        # Display three columns for phrasal verbs
+        cols = st.columns(3)
+        for i, col in enumerate(cols):
+            with col:
+                st.subheader(f"Phrasal Verb {i+1}")
+                if st.button(f"Get Random Verb {i+1}", key=f"btn_{i}"):
+                    st.session_state.phrasal_verbs[i] = self.fetch_random_phrasal_verb()
+
+                if st.session_state.phrasal_verbs[i]:
+                    pv = st.session_state.phrasal_verbs[i]
+                    st.write(f"**Verb:** {pv.phrasal_verb}")
+                    st.write(f"**Meaning:** {pv.meaning}")
+                    st.write(f"**Example:** {pv.example}")
+
+        # Get noun suggestions (only if API key is set)
+        if all(st.session_state.phrasal_verbs):
+            st.subheader("Noun Suggestions")
+            if st.button("Get Noun Suggestions", disabled=not st.session_state.api_key_set):
+                if st.session_state.api_key_set:
+                    self.phrasal_verbs = st.session_state.phrasal_verbs
+                    nouns = self.get_noun_suggestions()
+                    if nouns:
+                        st.write("You can use these nouns with the phrasal verbs:")
+                        st.write(", ".join(nouns))
+                else:
+                    st.warning("Please set your OpenAI API key first")
+
+def main():
+    app = PhrasalVerbApp()
+    app.render()
 
 if __name__ == "__main__":
-    app = PhrasalVerbApp()
-    app.run()
+    main()
