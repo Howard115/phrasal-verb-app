@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, field_validator  # Changed from validator to field_validator
 from typing import List
 import random
@@ -79,13 +80,13 @@ phrasal_verb_service = PhrasalVerbService()
 # 5. API endpoints
 @app.get("/")
 async def root():
-    return {"message": "Welcome to my lemonade stand!"}
+    return RedirectResponse(url="/docs")
 
-@app.get("/random-phrasal-verb")
+@app.get("/api/v1/phrasal-verbs/random")
 async def random_phrasal_verb():
     return phrasal_verb_service.get_random_phrasal_verb()
 
-@app.post("/getNounForMakeSentence", response_model=NounResponse)
+@app.post("/api/v1/nouns/suggestions", response_model=NounResponse)
 async def get_noun_for_make_sentence(request: PhrasalVerbRequest):
     try:
         nouns = await openai_service.get_nouns_for_phrasal_verbs(request.phrasal_verbs)
@@ -93,7 +94,7 @@ async def get_noun_for_make_sentence(request: PhrasalVerbRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"OpenAI API error: {str(e)}")
 
-@app.post("/set-api-key")
+@app.post("/api/v1/configuration/api-key")
 async def set_api_key(request: APIKeyRequest):
     try:
         openai_service.set_api_key(request.api_key)
