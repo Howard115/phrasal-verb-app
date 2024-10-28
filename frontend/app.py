@@ -11,7 +11,7 @@ class PhrasalVerb:
 
 class PhrasalVerbApp:
     def __init__(self):
-        self.base_url = "http://localhost:8000"
+        self.base_url = "https://phr.hnd1.zeabur.app"
         self.phrasal_verbs: List[PhrasalVerb] = [None, None, None]
         
     def fetch_random_phrasal_verb(self) -> PhrasalVerb:
