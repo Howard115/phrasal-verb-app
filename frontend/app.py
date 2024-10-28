@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List
 
 @dataclass
 class PhrasalVerb:
