@@ -42,7 +42,7 @@ class PhrasalVerbApp:
 
     def render(self):
         st.title("Phrasal Verb Learning Assistant")
-        st.write("Get three random phrasal verbs and receive noun suggestions!")
+        st.write("Get three random phrasal verbs and receive noun suggestions to make your own sentences with AI!")
 
         # Initialize session states
         if 'phrasal_verbs' not in st.session_state:
@@ -50,17 +50,7 @@ class PhrasalVerbApp:
         if 'api_key_set' not in st.session_state:
             st.session_state.api_key_set = False
 
-        # API Key Section (only show if not set)
-        if not st.session_state.api_key_set:
-            st.subheader("OpenAI API Key Configuration")
-            api_key = st.text_input("Enter your OpenAI API Key", type="password")
-            if st.button("Set API Key"):
-                if self.set_api_key(api_key):
-                    st.session_state.api_key_set = True
-                    st.success("API key set successfully!")
-                    st.rerun()
-                else:
-                    st.error("Failed to set API key. Please try again.")
+        
 
         # Display three columns for phrasal verbs
         cols = st.columns(3)
@@ -75,6 +65,21 @@ class PhrasalVerbApp:
                     st.write(f"**Verb:** {pv.phrasal_verb}")
                     st.write(f"**Meaning:** {pv.meaning}")
                     st.write(f"**Example:** {pv.example}")
+                    
+        # Add a divider between phrasal verbs and API key section
+        st.divider()
+        
+        # API Key Section (only show if not set)
+        if not st.session_state.api_key_set:
+            st.subheader("OpenAI API Key Configuration")
+            api_key = st.text_input("Enter your OpenAI API Key", type="password")
+            if st.button("Set API Key"):
+                if self.set_api_key(api_key):
+                    st.session_state.api_key_set = True
+                    st.success("API key set successfully!")
+                    st.rerun()
+                else:
+                    st.error("Failed to set API key. Please try again.")
 
         # Get noun suggestions (only if API key is set)
         if all(st.session_state.phrasal_verbs):
